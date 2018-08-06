@@ -3,8 +3,8 @@
    원하는 인자만, 원하는 Date 형태로 (moment 이용) 파일 생성
 /* Copyright (C) 2018.08.05 by Son J.W*/
 
-// -- 인자 설명 5개 --
-// 파일이름, response, collection 배열, 미리 넣어둘 string, 출력할 스키마 배열(조인 일경우 joinProperty생성)
+// -- 인자 설명 6개 --
+// 파일이름, request(한글 파일이름을 위해), response, collection 배열, 미리 넣어둘 string, 출력할 스키마 배열(조인 일경우 joinProperty생성)
 // 배열일 경우 배열 속 배열은 지원x 배열속 ref 1번만 지원 arrProperty
 
 /*
@@ -18,31 +18,20 @@ Array일 경우 원하는 schema를 포함한 arrProperty속성을 포함한 배
 예시:
   var str_temp = "<post>\nnumId,title,body,*author.nickname,*author.email,createdAt,comments[],,"
 
-  mongoose2CSV.mongoose2CSV('noticeboard.csv', res, data, str_temp,[{name:'numId'}, {name:'title'}, {name:'body'}, 
-    {name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'},
-    {name:'comments', arrProperty:[{name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]},{name: 'body'}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'}]}]);
+   mongoose2CSV.mongoose2CSV('게시판.csv', req, res, data, str_temp,[{name:'numId'}, {name:'title'}, {name:'body'}, 
+      {name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'},
+      {name:'comments', arrProperty:[{name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]},{name: 'body'}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'}]}]);
   });
-
--한계 
-
-배열 일 경우에 대해 배열 속 배열은 지원x
-배열 속 속성에 대해 join은 1번만 지원
-join된 속성에서 array가 있는 경우 지원x
-
-(내용 모두 출력은 하게 구현 할 수 있지만 셀에서 보여지는 모습의 문제 때문에 보류 중)
-
-/* Copyright (C) 2018 by Son J.W*/
-
-var mime = require('mime');
+*/
 var Readable = require('stream').Readable;
 var moment = require('moment');
+var iconvLite = require('iconv-lite');
 
-exports.mongoose2CSV = function(fileName, response, collections, preString, schema){
+exports.mongoose2CSV = function(fileName, request, response, collections, preString, schema){
   var str = new Readable();
-  var mimetype = mime.lookup(fileName);   // for mimetype extract from .csv
   
-  response.setHeader('Content-disposition', 'attachment; filename=' + fileName);
-  response.setHeader('Content-type', mimetype + ";charset=utf-8");  // for UTF-8 Support
+  response.setHeader('Content-disposition', 'attachment; filename=' + getDownloadFilename(request, fileName));
+  response.setHeader('Content-type', "text/csv;charset=utf-8");  // for UTF-8 Support
   str.pipe(response);
 
   processString = function(p_string){ return '"' + p_string.replace(/"/gm,"\"\"") + '"';};
@@ -128,6 +117,20 @@ exports.processString = function(p_string){
   return '"' + p_string.replace(/"/gm,"\"\"") + '"';
 };
 
+// 한글 파일이름 지원
+function getDownloadFilename(req, filename) {
+  var header = req.headers['user-agent'];
+  if (header.includes("MSIE") || header.includes("Trident")) { 
+      return encodeURIComponent(filename).replace(/\\+/gi, "%20");
+  } else if (header.includes("Chrome")) {
+      return iconvLite.decode(iconvLite.encode(filename, "UTF-8"), 'ISO-8859-1');
+  } else if (header.includes("Opera")) {
+      return iconvLite.decode(iconvLite.encode(filename, "UTF-8"), 'ISO-8859-1');
+  } else if (header.includes("Firefox")) {
+      return iconvLite.decode(iconvLite.encode(filename, "UTF-8"), 'ISO-8859-1');
+  }
+  return filename;
+}
 // 연속된 조인일 경우 .A.B.C: value 이런식으로 표기
 function processJoin(_collection, joinProperty, str){
   var len = joinProperty.length;
