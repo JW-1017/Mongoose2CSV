@@ -22,7 +22,17 @@ Array일 경우 원하는 schema를 포함한 arrProperty속성을 포함한 배
     {name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'},
     {name:'comments', arrProperty:[{name:'author', joinProperty:[{name: 'nickname'}, {name: 'email'}]},{name: 'body'}, {name:'createdAt', dateFormat:'YYYY[-]MM[-]DD HH[:]mm[:]ssZ'}]}]);
   });
-*/
+
+-한계 
+
+배열 일 경우에 대해 배열 속 배열은 지원x
+배열 속 속성에 대해 join은 1번만 지원
+join된 속성에서 array가 있는 경우 지원x
+
+(내용 모두 출력은 하게 구현 할 수 있지만 셀에서 보여지는 모습의 문제 때문에 보류 중)
+
+/* Copyright (C) 2018 by Son J.W*/
+
 var mime = require('mime');
 var Readable = require('stream').Readable;
 var moment = require('moment');
